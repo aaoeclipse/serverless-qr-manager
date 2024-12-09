@@ -12,7 +12,6 @@ import {
   DeleteCommand,
   DeleteCommandInput,
   PutCommand,
-  PutCommandInput,
   UpdateCommand,
   UpdateCommandInput,
 } from "@aws-sdk/lib-dynamodb";
@@ -30,7 +29,7 @@ const validateDocumentUpload = z.object({
 
 export const getDocuments = async (req: CustomRequest, res: Response) => {
   const userId = req.userId;
-  console.info("~ Starting getDocuments by userId:", userId);
+  console.info("[🏁] Starting getDocuments by userId:", userId);
 
   const docId = uuid();
 
@@ -54,14 +53,14 @@ export const getDocuments = async (req: CustomRequest, res: Response) => {
       res.json(documents);
     }
   } catch (error) {
-    console.error("[-] Error:", error);
+    console.error("[❌] Error:", error);
     res.status(500).json({ error: "Error retrieving documents" });
   }
 };
 
 export const getPresignedUrl = async (req: CustomRequest, res: Response) => {
   const userId = req.userId;
-  console.info("~ Starting getPresignedUrl by userId:", userId);
+  console.info("[🏁] Starting getPresignedUrl by userId:", userId);
 
   const result = uploadDocumentSchema.safeParse(req.body);
   if (!result.success) {
@@ -78,13 +77,13 @@ export const getPresignedUrl = async (req: CustomRequest, res: Response) => {
     const params: createDocumentParams = {
       TableName: USERS_TABLE,
       Item: {
-        PK: { S: `USER#${userId}` },
-        SK: { S: `DOCUMENT#${docId}` },
-        name: { S: name },
-        createdAt: { S: new Date().toISOString() },
-        ownerId: { S: userId ?? "" },
-        url: { S: `https://${S3_BUCKET}.s3.amazonaws.com/${s3Key}` },
-        uploading: { BOOL: true },
+        PK: `USER#${userId}`,
+        SK: `DOCUMENT#${docId}`,
+        name: name,
+        createdAt: new Date().toISOString(),
+        ownerId: userId ?? "",
+        url: `https://${S3_BUCKET}.s3.amazonaws.com/${s3Key}`,
+        uploading: true,
       },
     };
 
@@ -102,14 +101,14 @@ export const getPresignedUrl = async (req: CustomRequest, res: Response) => {
 
     res.status(500).json({ docId, presignedUrl, s3Key });
   } catch (error) {
-    console.error("[-] Error:", error);
+    console.error("[❌] Error:", error);
     res.status(500).json({ error: "Error generating presigned URL" });
   }
 };
 
 export const uploadDocument = async (req: CustomRequest, res: Response) => {
   const userId = req.userId;
-  console.info("~ Starting uploadDocument by userId:", userId);
+  console.info("[🏁] Starting uploadDocument by userId:", userId);
 
   const result = validateDocumentUpload.safeParse(req.body);
   if (!result.success) {
@@ -135,14 +134,14 @@ export const uploadDocument = async (req: CustomRequest, res: Response) => {
     await dynamoDbClient.send(new UpdateCommand(params));
     res.json({ success: true });
   } catch (error) {
-    console.error("[-] Error:", error);
+    console.error("[❌] Error:", error);
     res.status(500).json({ error: "Error updating document status" });
   }
 };
 
 export const deleteDocument = async (req: CustomRequest, res: Response) => {
   const userId = req.userId;
-  console.info("~ Starting deleteDocument by userId:", userId);
+  console.info("[🏁] Starting deleteDocument by userId:", userId);
 
   const result = validateDocumentUpload.safeParse(req.body);
   if (!result.success) {
@@ -164,7 +163,7 @@ export const deleteDocument = async (req: CustomRequest, res: Response) => {
     await dynamoDbClient.send(new DeleteCommand(params));
     res.json({ success: true });
   } catch (error) {
-    console.error("[-] Error:", error);
+    console.error("[❌] Error:", error);
     res.status(500).json({ error: "Error deleting document" });
   }
 };

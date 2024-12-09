@@ -3,31 +3,20 @@ import { GetCommand } from "@aws-sdk/lib-dynamodb";
 import { dynamoDbClient, USERS_TABLE } from "../../config/dynamo";
 import { User, GetUserParams, CreateUserParams } from "./users.types";
 import { CustomRequest } from "@/middleware/auth.middleware";
+import { getUserProfile } from "@/adapter/DynamoAdapter";
 
 // Modified functions
 export const getUser = async (req: CustomRequest, res: Response) => {
   const userId = req.userId;
-  const params: GetUserParams = {
-    TableName: USERS_TABLE,
-    Key: {
-      PK: `USER#${userId}`,
-      SK: `PROFILE#${userId}`,
-    },
-  };
+
+  if (!userId) {
+    res.status(400).json({ error: "Not logged in" });
+    return;
+  }
 
   try {
-    const { Item } = await dynamoDbClient.send(new GetCommand(params));
-    if (Item) {
-      const user = Item as User;
-      res.json({
-        userId: user.PK.split("#")[1],
-        name: user.name,
-      });
-    } else {
-      res
-        .status(404)
-        .json({ error: 'Could not find user with provided "userId"' });
-    }
+    const user = await getUserProfile(userId);
+    res.json(user);
   } catch (error) {
     console.log(error);
     res.status(500).json({ error: "Could not retrieve user" });

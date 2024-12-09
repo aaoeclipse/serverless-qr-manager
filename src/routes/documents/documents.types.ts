@@ -8,13 +8,13 @@ export interface Document {
 }
 
 export interface DocumentDynamodb {
-  PK: { S: string };
-  SK: { S: string };
-  name: { S: string };
-  url: { S: string };
-  createdAt: { S: string };
-  ownerId: { S: string };
-  uploading: { BOOL: boolean };
+  PK: string;
+  SK: string;
+  name: string;
+  url: string;
+  createdAt: string;
+  ownerId: string;
+  uploading: boolean;
 }
 
 export interface getQueryDocumentsParams {
