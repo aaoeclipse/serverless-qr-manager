@@ -7,32 +7,40 @@ import {
   MessageActionType,
   AuthFlowType,
 } from "@aws-sdk/client-cognito-identity-provider";
+import { dynamoDbClient, s3Client } from "@/config";
+import {
+  CreateBucketCommand,
+  CreateBucketCommandInput,
+} from "@aws-sdk/client-s3";
+import { PutCommand } from "@aws-sdk/lib-dynamodb";
 
 const cognito = new CognitoIdentityProviderClient({});
 
 export const signup = async (req: Request, res: Response) => {
   const { email, password } = req.body;
 
-  console.log(process.env);
-
   try {
     const createUserParams = {
       UserPoolId: process.env.USER_POOL_ID,
       Username: email,
       UserAttributes: [
-        {
-          Name: "email",
-          Value: email,
-        },
-        {
-          Name: "email_verified",
-          Value: "true",
-        },
+        { Name: "email", Value: email },
+        { Name: "email_verified", Value: "true" },
       ],
-      MessageAction: "SUPPRESS" as MessageActionType, // Type assertion here
+      MessageAction: "SUPPRESS" as MessageActionType,
     };
 
-    await cognito.send(new AdminCreateUserCommand(createUserParams));
+    const cognitoResponse = await cognito.send(
+      new AdminCreateUserCommand(createUserParams)
+    );
+
+    const userId = cognitoResponse.User?.Attributes?.find(
+      (attr) => attr.Name === "sub"
+    )?.Value;
+
+    if (!userId) {
+      throw new Error("Failed to get user ID from Cognito");
+    }
 
     const setPasswordParams = {
       Password: password,
@@ -43,10 +51,33 @@ export const signup = async (req: Request, res: Response) => {
 
     await cognito.send(new AdminSetUserPasswordCommand(setPasswordParams));
 
-    res.status(200).json({ message: "User registered successfully" });
+    const dynamoParams = {
+      TableName: process.env.USERS_TABLE,
+      Item: {
+        PK: `USER#${userId}`,
+        SK: `PROFILE#${userId}`,
+        email,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        directory: `${userId}`,
+        // Subscription related fields
+        tier: "free", // 'free' or 'pro'
+        subscriptionId: null, // Payment provider subscription ID
+        subscriptionStatus: "active", // 'active', 'cancelled', 'past_due'
+        subscriptionStartDate: null,
+        subscriptionEndDate: null,
+      },
+    };
+
+    await dynamoDbClient.send(new PutCommand(dynamoParams));
+
+    res.status(200).json({
+      message: "User registered successfully",
+      userId,
+    });
   } catch (error) {
     console.error("Error during signup:", error);
-    res.status(500).json({ error: error });
+    res.status(500).json({ error });
   }
 };
 

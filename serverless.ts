@@ -15,6 +15,7 @@ const serverlessConfig: AWS = {
       USERS_TABLE: "${self:custom.tableName}",
       USER_POOL_ID: { Ref: "UserPool" },
       CLIENT_ID: { Ref: "UserClient" },
+      S3_BUCKET: { Ref: "S3Bucket" },
     },
     iamRoleStatements: [
       {
@@ -287,6 +288,29 @@ const serverlessConfig: AWS = {
           ],
           BillingMode: "PAY_PER_REQUEST",
           TableName: "${self:custom.tableName}",
+        },
+      },
+      S3Bucket: {
+        Type: "AWS::S3::Bucket",
+        Properties: {
+          BucketName: "qr-manager-s3-${sls:stage}",
+          PublicAccessBlockConfiguration: {
+            BlockPublicAcls: true,
+            BlockPublicPolicy: true,
+            IgnorePublicAcls: true,
+            RestrictPublicBuckets: true,
+          },
+          CorsConfiguration: {
+            CorsRules: [
+              {
+                AllowedHeaders: ["*"],
+                AllowedMethods: ["GET", "PUT", "POST", "DELETE"],
+                AllowedOrigins: ["*"],
+                Id: "CORSRuleId1",
+                MaxAge: 3600,
+              },
+            ],
+          },
         },
       },
     },
