@@ -11,8 +11,8 @@ const router = Router();
 
 router.get("/", authenticateToken, getDocuments);
 router.post("/", authenticateToken, getPresignedUrl);
-router.get("/:documentId", authenticateToken, getDocuments);
-router.post("/:documentId", authenticateToken, uploadDocument);
-router.delete("/:documentId", authenticateToken, deleteDocument);
+router.get("/:docId", authenticateToken, getDocuments);
+// router.post("/:docId", authenticateToken, uploadDocument);
+router.delete("/:docId", authenticateToken, deleteDocument);
 
 export default router;

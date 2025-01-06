@@ -21,10 +21,10 @@ import { UserRaw } from "@/routes/users/users.types";
 export const QueryUsersQr = async (userid: string): Promise<QRraw[]> => {
   const params: QueryCommandInput = {
     TableName: USERS_TABLE,
-    KeyConditionExpression: "PK = :pk AND SK = :sk",
+    KeyConditionExpression: "PK = :pk AND begins_with(SK, :sk)",
     ExpressionAttributeValues: {
-      ":pk": `USER#${userid}`,
-      ":sk": `QR#`,
+      ":pk": { S: `USER#${userid}` },
+      ":sk": { S: "QR#" },
     },
   };
 

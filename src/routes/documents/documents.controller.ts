@@ -31,14 +31,12 @@ export const getDocuments = async (req: CustomRequest, res: Response) => {
   const userId = req.userId;
   console.info("[🏁] Starting getDocuments by userId:", userId);
 
-  const docId = uuid();
-
   const params: getQueryDocumentsParams = {
     TableName: USERS_TABLE,
     KeyConditionExpression: "PK = :pk AND begins_with(SK, :sk)",
     ExpressionAttributeValues: {
       ":pk": { S: `USER#${userId}` },
-      ":sk": { S: `DOCUMENT#${docId}` },
+      ":sk": { S: "DOCUMENT#" },
     },
   };
 
@@ -46,9 +44,12 @@ export const getDocuments = async (req: CustomRequest, res: Response) => {
     const { Items } = await dynamoDbClient.send(new QueryCommand(params));
     if (Items?.length) {
       const documents = Items.map((item) => ({
+        docId: item.SK?.S?.split("#")[1],
         userId: item.PK?.S?.split("#")[1],
-        name: item.name.S,
-        type: item.type.S,
+        name: item.name?.S || "",
+        url: item.url?.S || "",
+        createdAt: item.createdAt?.S || "",
+        uploading: item.uploading?.BOOL || true,
       }));
       res.json(documents);
     }
@@ -143,7 +144,7 @@ export const deleteDocument = async (req: CustomRequest, res: Response) => {
   const userId = req.userId;
   console.info("[🏁] Starting deleteDocument by userId:", userId);
 
-  const result = validateDocumentUpload.safeParse(req.body);
+  const result = validateDocumentUpload.safeParse(req.params);
   if (!result.success) {
     res.status(400).json({ error: result.error.issues });
     return;
