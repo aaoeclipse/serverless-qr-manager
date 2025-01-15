@@ -27,7 +27,7 @@ export const canCreateQR = async (userId: string) => {
     TableName: USERS_TABLE,
     Key: {
       PK: `USER#${userId}`,
-      SK: `USER#${userId}`,
+      SK: `PROFILE#${userId}`,
     },
     ProjectionExpression: "tier",
   };
@@ -83,7 +83,7 @@ export const canCreateDocument = async (userId: string) => {
     TableName: USERS_TABLE,
     Key: {
       PK: `USER#${userId}`,
-      SK: `USER#${userId}`,
+      SK: `PROFILE#${userId}`,
     },
     ProjectionExpression: "tier",
   };
@@ -112,9 +112,5 @@ export const canCreateDocument = async (userId: string) => {
   const docCount = docCountResult.Count || 0;
   console.debug("[💡] QR count:", docCount, " for user: ", userId);
 
-  if (docCount >= 1) {
-    return false;
-  }
-
-  return true;
+  return docCount >= 1;
 };

@@ -5,7 +5,7 @@ import { getQrs, createQr, removeQr, getQR } from "./qrs.controller";
 const router = express.Router();
 
 router.get("/", authenticateToken, getQrs);
-router.post("/", authenticateToken, createQr);
+router.post("/doc/:docId", authenticateToken, createQr);
 router.delete("/:qrId", authenticateToken, removeQr);
 router.get("/:qrId", authenticateToken, getQR);
 // TODO

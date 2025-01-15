@@ -55,7 +55,7 @@ export const QueryUsersDoc = async (userId: string): Promise<Document[]> => {
     KeyConditionExpression: "PK = :pk AND SK = :sk",
     ExpressionAttributeValues: {
       ":pk": `USER#${userId}`,
-      ":sk": "DOC#",
+      ":sk": "DOCUMENTS#",
     },
   };
 
@@ -165,4 +165,48 @@ export const removeUserQR = async (
     return false;
   }
   return true;
+};
+
+/**
+ * Retrieves a specific document associated with a user from the database.
+ *
+ * @param {string} userId - The unique identifier of the user.
+ * @param {string} docId - The unique identifier of the document.
+ * @returns {Promise<Document>} A promise that resolves to the document object containing docId, name, url, createdAt, ownerId, and uploading status.
+ *
+ * @throws {Error} If the document is not found in the database.
+ */
+
+export const GetDocumentOfUserById = async (
+  userId: string,
+  docId: string
+): Promise<Document> => {
+  console.debug("[🐛] GetDocumentOfUserById", userId, docId);
+  const params: GetCommandInput = {
+    TableName: USERS_TABLE,
+    Key: {
+      PK: `USER#${userId}`,
+      SK: `DOCUMENT#${docId}`,
+    },
+  };
+
+  const result = await dynamoDbClient.send(new GetCommand(params));
+
+  // check if result return empty
+  if (!result.Item) {
+    throw new Error("Document not found");
+  }
+
+  const document: Document = {
+    docId: result.Item.SK.split("#")[1],
+    name: result.Item.name,
+    url: result.Item.url,
+    createdAt: result.Item.createdAt,
+    ownerId: result.Item.ownerId,
+    uploading: result.Item.uploading,
+  };
+
+  console.debug("[🐛] GetDocumentOfUserById ~ Document: ", document);
+
+  return document;
 };

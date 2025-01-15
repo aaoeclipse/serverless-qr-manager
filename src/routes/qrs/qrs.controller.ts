@@ -10,12 +10,12 @@ import {
   createUserQR,
   QueryUsersQr,
   removeUserQR,
+  GetDocumentOfUserById,
 } from "@/adapter/DynamoAdapter";
 import { canCreateQR } from "@/utils/TierLimitations";
 
 const QRSchema = z.object({
   name: z.string().min(1),
-  path: z.string().min(1),
   type: z.enum(["table", "menu", "portafolio", "other"]),
 });
 
@@ -30,7 +30,7 @@ export const getQrs = async (req: CustomRequest, res: Response) => {
 
   try {
     console.debug("[🐛] getting Dynamo call with for userId: ", userId);
-    const userQrs = await QueryUsersQr(userId);
+    const userQrs: QRraw[] = await QueryUsersQr(userId);
     if (userQrs.length > 0) {
       res.json(userQrs);
     } else {
@@ -45,6 +45,11 @@ export const getQrs = async (req: CustomRequest, res: Response) => {
 
 export const createQr = async (req: CustomRequest, res: Response) => {
   const userId = req.userId;
+  if (!userId) {
+    res.status(400).json({ error: "Not logged in" });
+    return;
+  }
+
   console.info("[🏁] Starting createQr by userId:", userId);
 
   // Validate request
@@ -54,8 +59,31 @@ export const createQr = async (req: CustomRequest, res: Response) => {
     return;
   }
 
+  // Validate param docId
+  const { docId } = req.params;
+
+  if (!docId) {
+    res.status(400).json({ error: "Invalid docId" });
+    return;
+  }
+
+  // Get document path from dynamo
+  let document;
+  try {
+    document = await GetDocumentOfUserById(userId, docId);
+    if (!document || !document.url) {
+      res.status(404).json({ error: "Document not found" });
+      return;
+    }
+  } catch (error) {
+    res.status(404).json({ error: "Document not found" });
+    return;
+  }
+
+  const path = document.url;
+
   // Parse request
-  const { name, path, type } = result.data;
+  const { name, type } = result.data;
   const qrId = uuid();
 
   const qR: QRraw = {
@@ -72,7 +100,7 @@ export const createQr = async (req: CustomRequest, res: Response) => {
   }
 
   // Check Tier of user
-  if (!canCreateQR(userId)) {
+  if (!(await canCreateQR(userId))) {
     res.status(400).json({
       error: "User has reached the maximum number of QR codes allowed",
     });
@@ -82,19 +110,21 @@ export const createQr = async (req: CustomRequest, res: Response) => {
   try {
     console.debug("[🐛] creating QR code for user: ", userId);
 
-    const qrDataUrl = await QRCode.toDataURL(path, {
-      errorCorrectionLevel: "H",
-      margin: 2,
-      width: 300,
-    });
+    // Maybe leave it blank
 
-    qR.qrDataUrl = qrDataUrl;
+    // const qrDataUrl = await QRCode.toDataURL(path, {
+    //   errorCorrectionLevel: "H",
+    //   margin: 2,
+    //   width: 300,
+    // });
+
+    // qR.qrDataUrl = qrDataUrl;
 
     console.debug("[🐛] Adding QR code to DynamoDB");
-    const qrCreated = createUserQR(userId, qR);
+    const qrCreated = await createUserQR(userId, qR);
 
     console.debug("[✅] QR code created: ", qrCreated);
-    res.json({ message: "QR code created", qrId, qrDataUrl });
+    res.json({ message: "QR code created" });
   } catch (error) {
     console.error("[❌] Error:", error);
     res.status(500).json({ error: "Error creating QR code" });
