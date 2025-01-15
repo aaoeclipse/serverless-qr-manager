@@ -13,8 +13,6 @@ A serverless backend solution for creating and managing QR codes linked to cloud
 
 ## 🏗️ Architecture
 
-![Architecture Diagram (Coming Soon)]()
-
 ### Tech Stack
 
 - **Infrastructure as Code**: Serverless Framework

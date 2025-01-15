@@ -30,6 +30,9 @@ const serverlessConfig: AWS = {
           "dynamodb:PutItem",
           "dynamodb:UpdateItem",
           "dynamodb:DeleteItem",
+          "s3:PutObject",
+          "s3:GetObject",
+          "s3:DeleteObject",
         ],
         Resource: [{ "Fn::GetAtt": ["UsersTable", "Arn"] }, "*"],
       },
@@ -105,7 +108,7 @@ const serverlessConfig: AWS = {
         },
         {
           http: {
-            path: "qr",
+            path: "qr/doc/{docId}",
             method: "post",
             cors: true,
             authorizer: {
@@ -295,10 +298,10 @@ const serverlessConfig: AWS = {
         Properties: {
           BucketName: "qr-manager-s3-${sls:stage}",
           PublicAccessBlockConfiguration: {
-            BlockPublicAcls: true,
-            BlockPublicPolicy: true,
-            IgnorePublicAcls: true,
-            RestrictPublicBuckets: true,
+            BlockPublicAcls: false,
+            BlockPublicPolicy: false,
+            IgnorePublicAcls: false,
+            RestrictPublicBuckets: false,
           },
           CorsConfiguration: {
             CorsRules: [
@@ -308,6 +311,29 @@ const serverlessConfig: AWS = {
                 AllowedOrigins: ["*"],
                 Id: "CORSRuleId1",
                 MaxAge: 3600,
+              },
+            ],
+          },
+        },
+      },
+      S3BucketPolicy: {
+        Type: "AWS::S3::BucketPolicy",
+        Properties: {
+          Bucket: { Ref: "S3Bucket" },
+          PolicyDocument: {
+            Version: "2012-10-17",
+            Statement: [
+              {
+                Sid: "PublicReadGetObject",
+                Effect: "Allow",
+                Principal: "*",
+                Action: "s3:GetObject",
+                Resource: {
+                  "Fn::Join": [
+                    "",
+                    [{ "Fn::GetAtt": ["S3Bucket", "Arn"] }, "/*"],
+                  ],
+                },
               },
             ],
           },
